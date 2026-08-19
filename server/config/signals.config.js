@@ -1,11 +1,15 @@
 /**
  * VerifyKaro — Signal Definitions & Weights
  * ------------------------------------------
- * The LLM extracts signals. This file decides their score contribution.
+ * Different checks detect different risk signals.
  * The LLM never sets the final risk score.
  */
 
 const SIGNALS = {
+  // -------------------------------
+  // AI MESSAGE SIGNALS
+  // -------------------------------
+
   upfront_payment: {
     label: "Upfront Payment Request",
     description:
@@ -14,6 +18,7 @@ const SIGNALS = {
     severity: "high",
     source: "llm",
   },
+
   credential_request: {
     label: "Credential / OTP Request",
     description:
@@ -22,6 +27,7 @@ const SIGNALS = {
     severity: "high",
     source: "llm",
   },
+
   urgency_pressure: {
     label: "Urgency / Pressure Tactics",
     description:
@@ -30,6 +36,7 @@ const SIGNALS = {
     severity: "medium",
     source: "llm",
   },
+
   unrealistic_offer: {
     label: "Unrealistic Offer",
     description:
@@ -38,30 +45,7 @@ const SIGNALS = {
     severity: "medium",
     source: "llm",
   },
-  sender_domain_mismatch: {
-    label: "Sender/Domain Mismatch",
-    description:
-      "Claimed organisation name does not reasonably match the sender's email domain.",
-    weight: 25,
-    severity: "medium",
-    source: "rule",
-  },
-  malicious_url: {
-    label: "Known Malicious URL",
-    description:
-      "URL was flagged by Google Safe Browsing as a known threat.",
-    weight: 35,
-    severity: "high",
-    source: "api",
-  },
-  suspicious_url_pattern: {
-    label: "Suspicious URL Pattern",
-    description:
-      "The URL matched a weak local pattern check because external threat verification was unavailable. This is not proof that the URL is malicious.",
-    weight: 10,
-    severity: "low",
-    source: "rule",
-  },
+
   vague_identity: {
     label: "Vague / Unverifiable Identity",
     description:
@@ -70,23 +54,121 @@ const SIGNALS = {
     severity: "low",
     source: "llm",
   },
+
+  // -------------------------------
+  // SENDER / DOMAIN SIGNALS
+  // -------------------------------
+
+  sender_domain_mismatch: {
+    label: "Sender/Domain Mismatch",
+    description:
+      "Claimed organisation name does not reasonably match the sender's email domain.",
+    weight: 25,
+    severity: "medium",
+    source: "rule",
+  },
+
+  email_no_mx: {
+    label: "Email Domain Cannot Receive Mail",
+    description:
+      "The sender's domain does not have a valid MX record.",
+    weight: 20,
+    severity: "high",
+    source: "api",
+  },
+
+  email_disposable: {
+    label: "Disposable Email Address",
+    description:
+      "The sender uses a disposable or temporary email domain.",
+    weight: 25,
+    severity: "high",
+    source: "api",
+  },
+
+  email_smtp_failed: {
+    label: "Email SMTP Verification Failed",
+    description:
+      "Independent email verification could not confirm that the sender mailbox can receive email.",
+    weight: 15,
+    severity: "medium",
+    source: "api",
+  },
+
+  // -------------------------------
+  // URL SIGNALS
+  // -------------------------------
+
+  malicious_url: {
+    label: "Known Malicious URL",
+    description:
+      "URL was flagged by Google Safe Browsing as a known threat.",
+    weight: 35,
+    severity: "high",
+    source: "api",
+  },
+
+  suspicious_url_pattern: {
+    label: "Suspicious URL Pattern",
+    description:
+      "The URL matched a weak local pattern check because external threat verification was unavailable. This is not proof that the URL is malicious.",
+    weight: 10,
+    severity: "low",
+    source: "rule",
+  },
 };
 
+// -------------------------------
+// RISK BANDS
+// -------------------------------
+
 const RISK_BANDS = [
-  { level: "low", min: 0, max: 34, label: "Low Risk" },
-  { level: "medium", min: 35, max: 64, label: "Medium Risk" },
-  { level: "high", min: 65, max: 100, label: "High Risk" },
+  {
+    level: "low",
+    min: 0,
+    max: 34,
+    label: "Low Risk",
+  },
+
+  {
+    level: "medium",
+    min: 35,
+    max: 64,
+    label: "Medium Risk",
+  },
+
+  {
+    level: "high",
+    min: 65,
+    max: 100,
+    label: "High Risk",
+  },
 ];
 
 function getRiskBand(score) {
-  if (!Number.isFinite(score) || score < 0 || score > 100) {
+  if (
+    !Number.isFinite(score) ||
+    score < 0 ||
+    score > 100
+  ) {
     console.error(
       `getRiskBand received an invalid score: ${score}. Returning null.`
     );
+
     return null;
   }
 
-  return RISK_BANDS.find((band) => score >= band.min && score <= band.max) || null;
+  return (
+    RISK_BANDS.find(
+      (band) =>
+        score >= band.min &&
+        score <= band.max
+    ) || null
+  );
 }
 
-module.exports = { SIGNALS, RISK_BANDS, getRiskBand };
+module.exports = {
+  SIGNALS,
+  RISK_BANDS,
+  getRiskBand,
+};

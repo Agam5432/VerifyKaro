@@ -8,6 +8,7 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 const API_URL = `${API_BASE_URL}/verify`;
+const EMAIL_VERIFY_URL = `${API_BASE_URL}/verify-email`;
 const TRANSLATE_URL = `${API_BASE_URL}/translate`;
 
 const MAX_FILE_SIZE_MB = 8;
@@ -236,26 +237,32 @@ function VerifyPage() {
   // ------------------------------------------------
 
   const handleVerify = async () => {
-    const cleanText = text.trim();
+  const cleanText = text.trim();
 
-    if (!cleanText) return;
+  if (!cleanText) return;
 
-    setLoading(true);
-    setLoadingStep(0);
+  setLoading(true);
+  setLoadingStep(0);
 
-    setError(null);
-    setResult(null);
-    setAnimatedScore(0);
+  setError(null);
+  setResult(null);
+  setAnimatedScore(0);
 
-    setActiveLang("en");
-    setTranslatedInsight(null);
+  setActiveLang("en");
+  setTranslatedInsight(null);
 
-    setDetectedType(detectType(cleanText));
+  setDetectedType(detectType(cleanText));
 
-    try {
-      setLoadingStep(1);
+  try {
+    setLoadingStep(1);
 
-      const res = await fetch(API_URL, {
+    // ---------------------------------------------
+    // MESSAGE RISK + EMAIL VERIFICATION
+    // Run both independently
+    // ---------------------------------------------
+
+    const [riskResponse, emailResponse] = await Promise.all([
+      fetch(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -263,87 +270,161 @@ function VerifyPage() {
         body: JSON.stringify({
           text: cleanText,
         }),
+      }),
+
+      fetch(EMAIL_VERIFY_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          input: cleanText,
+        }),
+      }),
+    ]);
+
+    // ---------------------------------------------
+    // Parse responses
+    // ---------------------------------------------
+
+    const data = await riskResponse.json().catch(() => null);
+
+    const emailData = await emailResponse
+      .json()
+      .catch(() => null);
+
+    // ---------------------------------------------
+    // Risk API error
+    // ---------------------------------------------
+
+    if (!riskResponse.ok) {
+      throw new Error(
+        data?.error || "Server returned an error."
+      );
+    }
+
+    // ---------------------------------------------
+    // AI FAILURE
+    // ---------------------------------------------
+
+    if (data?.analysisComplete === false) {
+      setResult({
+        analysisComplete: false,
+
+        score: null,
+        rawScore: null,
+        wasCapped: false,
+
+        band: null,
+
+        evidence: [],
+
+        meta: {
+          label: "Analysis Incomplete",
+          color: "#D97706",
+          bg: "#FFFBEB",
+          desc:
+            "The AI analysis did not complete, so VerifyKaro is not showing a safe/unsafe risk score.",
+        },
+
+        reco:
+          data.recommendation ||
+          "Please try again in a moment for the full analysis.",
+
+        aiInsight: null,
+
+        llmFailed: true,
+
+        urlCheck: data.urlCheck || null,
+
+        // Email result can still be shown
+        emailResults:
+          emailData?.success
+            ? emailData.results || []
+            : [],
+
+        primarySender:
+          emailData?.success
+            ? emailData.primarySender || null
+            : null,
       });
 
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(
-          data?.error || "Server returned an error."
-        );
-      }
-
-      // AI FAILURE
-      if (data?.analysisComplete === false) {
-        setResult({
-          analysisComplete: false,
-          score: null,
-          rawScore: null,
-          wasCapped: false,
-          band: null,
-          evidence: [],
-          meta: {
-            label: "Analysis Incomplete",
-            color: "#D97706",
-            bg: "#FFFBEB",
-            desc:
-              "The AI analysis did not complete, so VerifyKaro is not showing a safe/unsafe risk score.",
-          },
-          reco:
-            data.recommendation ||
-            "Please try again in a moment for the full analysis.",
-          aiInsight: null,
-          llmFailed: true,
-          urlCheck: data.urlCheck || null,
-        });
-
-        return;
-      }
-
-      setLoadingStep(2);
-
-      const nextResult = {
-        analysisComplete: true,
-        score: data.score,
-        rawScore: data.rawScore,
-        wasCapped: data.wasCapped,
-        band: data.riskLevel,
-        evidence: data.evidence || [],
-        meta:
-          RISK_META[data.riskLevel] ||
-          RISK_META.medium,
-        reco: data.recommendation,
-        aiInsight: data.aiInsight,
-        llmFailed: false,
-        urlCheck: data.urlCheck || null,
-        emailResults: data.results || [],
-        primarySender: data.primarySender || null,
-      };
-
-      setResult(nextResult);
-
-      setAnimatedScore(0);
-
-      window.setTimeout(() => {
-        setAnimatedScore(
-          Number.isFinite(data.score)
-            ? data.score
-            : 0
-        );
-      }, 50);
-
-      setLoadingStep(3);
-    } catch (err) {
-      console.error(err);
-
-      setError(
-        err.message ||
-          "Something went wrong. Please try again."
-      );
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
+
+    setLoadingStep(2);
+
+    // ---------------------------------------------
+    // FINAL RESULT
+    // ---------------------------------------------
+
+    const nextResult = {
+      analysisComplete: true,
+
+      // Main message risk
+      score: data.score,
+      rawScore: data.rawScore,
+      wasCapped: data.wasCapped,
+
+      band: data.riskLevel,
+
+      evidence: data.evidence || [],
+
+      meta:
+        RISK_META[data.riskLevel] ||
+        RISK_META.medium,
+
+      reco: data.recommendation,
+
+      aiInsight: data.aiInsight,
+
+      llmFailed: false,
+
+      urlCheck: data.urlCheck || null,
+
+      // -------------------------------------------
+      // EMAIL VERIFICATION RESULT
+      // -------------------------------------------
+
+      emailResults:
+        emailData?.success
+          ? emailData.results || []
+          : [],
+
+      primarySender:
+        emailData?.success
+          ? emailData.primarySender || null
+          : null,
+    };
+
+    setResult(nextResult);
+
+    // ---------------------------------------------
+    // Animate score
+    // ---------------------------------------------
+
+    setAnimatedScore(0);
+
+    window.setTimeout(() => {
+      setAnimatedScore(
+        Number.isFinite(data.score)
+          ? data.score
+          : 0
+      );
+    }, 50);
+
+    setLoadingStep(3);
+  } catch (err) {
+    console.error(err);
+
+    setError(
+      err.message ||
+        "Something went wrong. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ------------------------------------------------
   // FILE UPLOAD

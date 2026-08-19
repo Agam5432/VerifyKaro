@@ -229,7 +229,7 @@ async function verifyEmail(
 
   const abstractConfirmsNoMx = abstractCheck.available && abstractCheck.isMxFound === false;
 
-  const ownCheckSaysNoMx = mxCheck.hasMX && mxCheck.definitive;
+  const ownCheckSaysNoMx = !mxCheck.hasMX && mxCheck.definitive;
 
   const noMxConfirmed = !abstractConfirmsMx && (ownCheckSaysNoMx || abstractConfirmsNoMx);
 
