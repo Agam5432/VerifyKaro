@@ -244,9 +244,22 @@ function VerifyPage() {
   setLoading(true);
   setLoadingStep(0);
 
+  const stepTimer1 = window.setTimeout(() => {
+    setLoadingStep(1);
+  }, 700);
+
+  const stepTimer2 = window.setTimeout(() => {
+    setLoadingStep(2);
+  }, 1600);
+
+  const stepTimer3 = window.setTimeout(() => {
+    setLoadingStep(3);
+  }, 2500);
+
   setError(null);
   setResult(null);
   setAnimatedScore(0);
+  
 
   setActiveLang("en");
   setTranslatedInsight(null);
@@ -254,8 +267,6 @@ function VerifyPage() {
   setDetectedType(detectType(cleanText));
 
   try {
-    setLoadingStep(1);
-
     // ---------------------------------------------
     // MESSAGE RISK + EMAIL VERIFICATION
     // Run both independently
@@ -351,9 +362,6 @@ function VerifyPage() {
 
       return;
     }
-
-    setLoadingStep(2);
-
     // ---------------------------------------------
     // FINAL RESULT
     // ---------------------------------------------
@@ -398,7 +406,7 @@ function VerifyPage() {
     };
 
     setResult(nextResult);
-
+    setLoadingStep(4);
     // ---------------------------------------------
     // Animate score
     // ---------------------------------------------
@@ -421,7 +429,12 @@ function VerifyPage() {
       err.message ||
         "Something went wrong. Please try again."
     );
-  } finally {
+  } 
+  finally {
+    window.clearTimeout(stepTimer1);
+    window.clearTimeout(stepTimer2);
+    window.clearTimeout(stepTimer3);
+
     setLoading(false);
   }
 };
