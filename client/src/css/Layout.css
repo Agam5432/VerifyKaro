@@ -1,0 +1,216 @@
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+
+  padding: 18px 5%;
+
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.logo-mark {
+  height: 38px;
+  width: auto;
+  object-fit: contain;
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-link {
+  padding: 10px 16px;
+
+  border-radius: 10px;
+
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+
+  text-decoration: none;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.nav-link:hover {
+  background: #f8fafc;
+  color: #111827;
+}
+
+.nav-link.active {
+  background: #f1f5f9;
+  color: #111827;
+}
+
+
+/* =========================================================
+   HAMBURGER
+========================================================= */
+
+.menu-toggle {
+  display: none;
+
+  width: 42px;
+  height: 42px;
+
+  padding: 9px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+
+  background: #ffffff;
+
+  cursor: pointer;
+
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 5px;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.menu-toggle:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.menu-toggle span {
+  display: block;
+
+  width: 20px;
+  height: 2px;
+
+  border-radius: 999px;
+
+  background: #334155;
+
+  transition:
+    transform 0.25s ease,
+    opacity 0.2s ease;
+}
+
+
+/* =========================================================
+   HAMBURGER → X ANIMATION
+========================================================= */
+
+.menu-toggle.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.menu-toggle.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-toggle.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+  .header {
+    padding: 14px 20px;
+  }
+
+  .logo-mark {
+    height: 32px;
+  }
+
+  /* Show hamburger */
+  .menu-toggle {
+    display: flex;
+  }
+
+
+  /* Mobile navigation */
+  .nav {
+    position: absolute;
+
+    top: calc(100% + 1px);
+    left: 0;
+    right: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 4px;
+
+    padding: 10px 20px 14px;
+
+    background: #ffffff;
+
+    border-bottom: 1px solid #e5e7eb;
+
+    box-shadow:
+      0 12px 25px rgba(15, 23, 42, 0.06);
+
+    /* Hidden by default */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+
+    pointer-events: none;
+
+    transition:
+      opacity 0.2s ease,
+      visibility 0.2s ease,
+      transform 0.2s ease;
+  }
+
+
+  /* Open menu */
+  .nav.nav-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+
+    pointer-events: auto;
+  }
+
+
+  .nav-link {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 12px 14px;
+
+    border-radius: 9px;
+
+    font-size: 13px;
+  }
+
+}
